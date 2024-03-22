@@ -1,0 +1,4 @@
+{
+  "BrowserType": "Chrome",
+  "BaseUrl": "https://site.com"
+}
