@@ -1,5 +1,6 @@
 ﻿using API.Actions;
-using API.Clients;
+using API.Helpers;
+using API.Models;
 using API.Services;
 
 namespace APITests.Steps
@@ -16,12 +17,12 @@ namespace APITests.Steps
             _resetLoginFailTotalApiService = new ResetLoginFailTotalApiService(url);
         }
 
-        public List<string> FetchAllLoginFailTotals(string? userName = null, int? failCount = null, int? fetchLimit = null)
+        public List<UserInfoResponse> FetchAllLoginFailTotals(string? userName = null, int? failCount = null, int? fetchLimit = null)
         {
             return _loginFailTotalAPIService.FetchLoginFailTotal(userName, failCount, fetchLimit);
         }
 
-        public string FetchLoginFailTotalWithError(string? userName = null, int? failCount = null, int? fetchLimit = null)
+        public ApiResponse FetchLoginFailTotalWithError(string? userName = null, int? failCount = null, int? fetchLimit = null)
         {
             return _loginFailTotalAPIService.FetchLoginFailTotalWithError(userName, failCount, fetchLimit);
         }
@@ -31,7 +32,7 @@ namespace APITests.Steps
             _resetLoginFailTotalApiService.ResetLoginFailTotal(userName, false);
         }
 
-        public string ResetLoginFailTotalWithError(string? userName)
+        public ApiResponse ResetLoginFailTotalWithError(string? userName)
         {
             return _resetLoginFailTotalApiService.ResetLoginFailTotal(userName, true);
         }

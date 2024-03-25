@@ -1,4 +1,5 @@
 ﻿using API.Clients;
+using API.Helpers;
 
 namespace API.Actions
 {
@@ -11,11 +12,11 @@ namespace API.Actions
             _resetLoginFailTotalAPIClient = new ResetLoginFailTotalApiClient(url);
         }
 
-        public string ResetLoginFailTotal(string? userName, bool hasResponseWithError = false)
+        public ApiResponse ResetLoginFailTotal(string? userName, bool hasResponseWithError = false)
         {
             var response = _resetLoginFailTotalAPIClient.PutResetLoginFailTotal(userName);
             if (!hasResponseWithError) response.VerifySuccessfulStatusCode();
-            return response.GetContent<string>();
+            return response;
         }
     }
 }

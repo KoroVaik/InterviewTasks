@@ -1,4 +1,5 @@
 ﻿using Core;
+using DB;
 using NUnit.Framework;
 
 namespace APITests.Tests
@@ -8,9 +9,22 @@ namespace APITests.Tests
     {
         protected APIConfigurations _configurations { get => GetAPIConfigurations(); }
 
+        protected DbContext _dbContext { get; private set; }
+
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
+        {
+            _dbContext = ConfigureDbContext();
+        }
+
         private APIConfigurations GetAPIConfigurations()
         {
             return ConfigurationManager.Get<APIConfigurations>();
+        }
+
+        private DbContext ConfigureDbContext()
+        {
+            return new();
         }
     }
 }

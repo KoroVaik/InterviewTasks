@@ -1,164 +1,223 @@
-﻿using APITests.Steps;
-using Core;
+﻿using APITests.Mappers;
+using APITests.Steps;
+using AutoMapper;
+using DB.Repositories;
+using Domain.Models;
 using FluentAssertions;
 using NUnit.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UITests.TestData;
+using System.Net;
 
 namespace APITests.Tests
 {
     [TestFixture]
     public class LoginTests : BaseApiTests
     {
-        private LoginFailApiSteps _loginFailApiSteps;
-
-        private UserDataProvider _userDataProvider = new();
+        private readonly LoginFailApiSteps _loginFailApiSteps;
+        private readonly UserInfoDbRepository _userInfoDbRepository;
+        //I use an automapper to make it easy to check data from different sources like APIs,
+        //databases, user interfaces, and so on, by bringing these models into a domain view.
+        private readonly IMapper _mapper;
 
         public LoginTests()
         {
             _loginFailApiSteps = new LoginFailApiSteps(_configurations.BaseUrl);
+            _userInfoDbRepository = new UserInfoDbRepository(_dbContext);
+            _mapper = APIMapper.Configure();
         }
 
         [SetUp]
         public void SetUpTest()
         {
-            //The DB must be filled with user data and failed attempts to login
+            //The DB must be filled with the number of users and failed login attempts
+            //At least 5 users with failed login attempts in range 0 - 3
+            //This can be achieved by deleting all test users from the DB
+            //and re-creating the default users again
         }
 
         [Test]
         public void GetLoginFailTotalForAllUsers()
         {
-            //the list of users data has to be taken directely from the DB
-            var expectedUsersData = new List<string>(); 
+            //Arrange
+            var dbUsersData = _userInfoDbRepository.GetAllUserInfos();
+            var expectedUsersData = _mapper.Map<List<UserInfoModel>>(dbUsersData);
 
-            var actualUsersData = _loginFailApiSteps.FetchAllLoginFailTotals();
+            //Act
+            var apiUsersData = _loginFailApiSteps.FetchAllLoginFailTotals();
+            var actualUsersData = _mapper.Map<List<UserInfoModel>>(apiUsersData);
 
+            //Assert
+            //Validation of a positive status code takes place implicitly in the API service
             actualUsersData.Should().BeEquivalentTo(expectedUsersData);
         }
 
         [Test]
         public void GetLoginFailTotalForSpecificUser()
         {
-            //the users data has to be taken directely from the DB
-            var expectedUsersData = new List<string>();
-            var userAlias = "validUser";
-            var userData = _userDataProvider.GetUserData(userAlias);
+            //Arrange
+            var dbUserData = _userInfoDbRepository.GetAllUserInfos().First();
+            var expectedUserData = _mapper.Map<UserInfoModel>(dbUserData);
 
-            var actualUsersData = _loginFailApiSteps.FetchAllLoginFailTotals(userName: userData.UserName);
+            //Act
+            var apiUsersData = _loginFailApiSteps.FetchAllLoginFailTotals(userName: dbUserData.UserName);
+            var actualUsersData = _mapper.Map<List<UserInfoModel>>(apiUsersData);
 
-            actualUsersData.Should().BeEquivalentTo(expectedUsersData);
+            //Assert
+            actualUsersData.Should().ContainSingle().Which.Should().Be(expectedUserData);
         }
 
         [Test]
         public void GetLoginFailTotalAboveFailCount()
         {
+            //Arrange
             int failureThreshold = 3;
-            //the list of users data has to be taken directely from the DB filtered by failureThreshold
-            var expectedUsersData = new List<string>();
+            var dbUsersData = _userInfoDbRepository.GetAllUserInfos()
+                .Where(x => x.FailedLogins > failureThreshold);
+            var expectedUsersData = _mapper.Map<List<UserInfoModel>>(dbUsersData);
 
-            var actualUsersData = _loginFailApiSteps.FetchAllLoginFailTotals(failCount: failureThreshold);
+            //Act
+            var apiUsersData = _loginFailApiSteps.FetchAllLoginFailTotals(failCount: failureThreshold);
+            var actualUsersData = _mapper.Map<List<UserInfoModel>>(apiUsersData);
 
+            //Assert
             actualUsersData.Should().BeEquivalentTo(expectedUsersData);
         }
 
         [Test]
         public void GetLoginFailTotalWithFetchLimit()
         {
-            int fetchLimit = 3;
-            //the list of users data has to be taken directely from the DB filtered by fetchLimit
-            var expectedUsersData = new List<string>();
+            //Arrange
+            int fetchLimit = 4;
+            var dbUsersData = _userInfoDbRepository.GetAllUserInfos().Take(fetchLimit);
+            var expectedUsersData = _mapper.Map<List<UserInfoModel>>(dbUsersData);
 
-            var actualUsersData = _loginFailApiSteps.FetchAllLoginFailTotals(fetchLimit: fetchLimit);
+            //Act
+            var apiUsersData = _loginFailApiSteps.FetchAllLoginFailTotals(fetchLimit: fetchLimit);
+            var actualUsersData = _mapper.Map<List<UserInfoModel>>(apiUsersData);
 
+            //Assert
             actualUsersData.Should().BeEquivalentTo(expectedUsersData);
         }
 
         [Test]
         public void GetLoginFailTotalAboveFailCountWithFetchLimit()
         {
+            //Arrange
             int fetchLimit = 3;
-            int failureThreshold = 3;
-            //the list of users data has to be taken directely from the DB filtered by fetchLimit and failureThreshold
-            var expectedUsersData = new List<string>();
+            int failureThreshold = 2;
+            var dbUsersData = _userInfoDbRepository.GetAllUserInfos()
+                .Where(x => x.FailedLogins > failureThreshold)
+                .Take(fetchLimit);
+            var expectedUsersData = _mapper.Map<List<UserInfoModel>>(dbUsersData);
 
-            var actualUsersData = _loginFailApiSteps.FetchAllLoginFailTotals(failCount: failureThreshold, fetchLimit: fetchLimit);
+            //Act
+            var apiUsersData = _loginFailApiSteps.FetchAllLoginFailTotals(failCount: failureThreshold, fetchLimit: fetchLimit);
+            var actualUsersData = _mapper.Map<List<UserInfoModel>>(apiUsersData);
 
+            //Assert
             actualUsersData.Should().BeEquivalentTo(expectedUsersData);
         }
 
         [Test]
+        //This test is questionable because it is not known how filtering occurs
+        //when all parameters are specified
         public void GetLoginFailTotalAboveFailCountWithFetchLimitForSpecificUser()
         {
+            //Arrange
             int fetchLimit = 3;
-            int failureThreshold = 3;
-            var userAlias = "validUser";
-            var userData = _userDataProvider.GetUserData(userAlias);
-            //the user data has to be taken directely from the DB filtered by fetchLimit and failureThreshold
-            var expectedUsersData = new List<string>();
+            int failureThreshold = 2;
+            var dbUserData = _userInfoDbRepository.GetAllUserInfos()
+                .Where(x => x.FailedLogins > failureThreshold)
+                .Take(fetchLimit)
+                .First();
+            var expectedUserData = _mapper.Map<List<UserInfoModel>>(dbUserData);
 
-            var actualUsersData = _loginFailApiSteps.FetchAllLoginFailTotals(userName: userData.UserName, failCount: failureThreshold, fetchLimit: fetchLimit);
+            //Act
+            var apiUsersData = _loginFailApiSteps.FetchAllLoginFailTotals(
+                userName: dbUserData.UserName, 
+                failCount: failureThreshold, 
+                fetchLimit: fetchLimit);
+            var actualUsersData = _mapper.Map<List<UserInfoModel>>(apiUsersData);
 
-            actualUsersData.Should().BeEquivalentTo(expectedUsersData);
+            //Assert
+            actualUsersData.Should().ContainSingle().Which.Should().Be(expectedUserData);
         }
 
         [Test]
-        public void GetLoginFailTotalInvalidParameters()
+        //The number of test cases could be increased by using different variations of arguments
+        public void GetLoginFailTotalWithInvalidParameters()
         {
-            var expectedError = "Error that indicates wrong parameters are passed in the request";
+            //Arrange
+            var expectedErrorMessage = "Error that indicates wrong parameters were passed in the request";
+            var userName = "#$%";
+            var fetchLimit = -1;
+            var failureThreshold = -3;
 
-            //The number of test cases could be increased by using different variations of arguments
-            var actualUsersData = _loginFailApiSteps.FetchLoginFailTotalWithError(null, null, null);
-                
-            actualUsersData.Should().Be(expectedError);
+            //Act
+            var actualResponse = _loginFailApiSteps.FetchLoginFailTotalWithError(userName, fetchLimit, failureThreshold);
+            
+            //Assert
+            actualResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            actualResponse.Content.Should().Be(expectedErrorMessage);
         }
 
         [Test]
         public void GetLoginFailTotalForNotExistingUserName()
         {
+            //Arrange
             var userName = "invalidUserName";
-            var expectedError = "The error indicates that not existing user has been passes in the request";
+            var expectedErrorMessage = "User not found";
 
-            var actualUsersData = _loginFailApiSteps.FetchLoginFailTotalWithError(userName);
+            //Act
+            var actualResponse = _loginFailApiSteps.FetchLoginFailTotalWithError(userName);
 
-            actualUsersData.Should().Be(expectedError);
+            //Assert
+            actualResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+            actualResponse.Content.Should().Be(expectedErrorMessage);
         }
 
         [Test]
         public void ResetLoginFailTotalForSpecificUser()
         {
-            var userAlias = "validUser";
-            var userData = _userDataProvider.GetUserData(userAlias);
+            //Arrange
+            var dbUserData = _userInfoDbRepository.GetAllUserInfos().First(x => x.FailedLogins > 0);
 
-            _loginFailApiSteps.ResetLoginFailTotalForUser(userData.UserName);
+            //Act
+            _loginFailApiSteps.ResetLoginFailTotalForUser(dbUserData.UserName);
+            var actualUserData = _userInfoDbRepository.GetUserInfo(dbUserData.UserName);
 
-            //Assert that the user in the DB doesn't have failed attempts
+            //Assert
+            actualUserData.FailedLogins.Should().Be(0);
         }
 
         [Test]
+        //The number of test cases could be increased by using different user names
         public void ResetLoginFailTotalMissingUsername()
         {
-            var userName = "1111";
-            var expectedErrorResponse = "An error indicates a wrong user name provided";
-            var errorResponse = _loginFailApiSteps.ResetLoginFailTotalWithError(userName);
+            //Arrange
+            var userName = "userName!@#";
+            var expectedErrorMessage = "Bad request";
 
-            //Assert that the user in the DB does have failed attempts
-            errorResponse.Should().Be(expectedErrorResponse);
+            //Act
+            var actualResponse = _loginFailApiSteps.ResetLoginFailTotalWithError(userName);
+
+            //Assert
+            actualResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            actualResponse.Content.Should().Be(expectedErrorMessage);
         }
 
         [Test]
         public void ResetLoginFailTotalUnauthorizedAccess()
         {
-            var userAlias = "invalidUser";
-            var userData = _userDataProvider.GetUserData(userAlias);
-            var expectedErrorResponse = "An error indicates that access for the user is forbidden";
+            //Arrange
+            var userName = "invalidUser";
+            var expectedErrorMessage = "User not found";
 
-            var errorResponse = _loginFailApiSteps.ResetLoginFailTotalWithError(userData.UserName);
+            //Act
+            var actualResponse = _loginFailApiSteps.ResetLoginFailTotalWithError(userName);
 
-            errorResponse.Should().Be(expectedErrorResponse);
+            //Assert
+            actualResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+            actualResponse.Content.Should().Be(expectedErrorMessage);
         }
     }
 }

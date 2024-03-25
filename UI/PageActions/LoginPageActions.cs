@@ -22,5 +22,7 @@ namespace UI.PageActions
         public void SetPassword(string password) => _loginPage.PasswordInput.SendKeys(password);
         
         public void SubmitData() => _loginPage.SubmitButton.Click();
+
+        public bool IsLoginFormDisplayed() => _loginPage.LoginForm.Displayed;
     }
 }

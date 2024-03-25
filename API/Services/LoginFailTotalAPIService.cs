@@ -1,4 +1,7 @@
-﻿using API.Clients;
+﻿using A.Models;
+using API.Clients;
+using API.Helpers;
+using API.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,17 +19,17 @@ namespace API.Services
             _loginFailTotalApiClient = new(url);
         }
 
-        public List<string> FetchLoginFailTotal(string? userName = null, int? failCount = null, int? fetchLimit = null)
+        public List<UserInfoResponse> FetchLoginFailTotal(string? userName = null, int? failCount = null, int? fetchLimit = null)
         {
             var response = _loginFailTotalApiClient.GetLoginFailTotalResponse(userName, failCount, fetchLimit);
             response.VerifySuccessfulStatusCode();
-            return response.GetContent<List<string>>();
+            return response.GetContent<List<UserInfoResponse>>();
         }
 
-        public string FetchLoginFailTotalWithError(string? userName = null, int? failCount = null, int? fetchLimit = null)
+        public ApiResponse FetchLoginFailTotalWithError(string? userName = null, int? failCount = null, int? fetchLimit = null)
         {
             var response = _loginFailTotalApiClient.GetLoginFailTotalResponse(userName, failCount, fetchLimit);
-            return response.GetContent<string>();
+            return response;
         }
     }
 }

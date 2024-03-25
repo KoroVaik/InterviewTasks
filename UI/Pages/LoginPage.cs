@@ -4,6 +4,8 @@ namespace UI.Pages
 {
     public class LoginPage : Page
     {
+        public IWebElement LoginForm => _driver.FindElement(By.XPath("//form[@id='loginForm']"));
+
         public IWebElement UserNameInput => _driver.FindElement(By.XPath("//form[@id='loginForm']/input[1]"));
 
         public IWebElement PasswordInput => _driver.FindElement(By.XPath("//form[@id='loginForm']/input[2]"));
