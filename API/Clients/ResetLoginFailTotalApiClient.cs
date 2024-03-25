@@ -18,7 +18,10 @@ namespace API.Clients
         public ApiResponse PutResetLoginFailTotal(string? userName = null)
         {
             var requestBuilder = new RequestBuilder().WithMethod(Method.Put).WithResource(ResetLoginFailTotal);
-            if (userName == null) requestBuilder.WithQueryParameter("userName", userName!);
+            if (userName == null)
+            {
+                requestBuilder.WithQueryParameter("userName", userName!);
+            }
             return Execute(requestBuilder.CreateRequest());
         }
     }
